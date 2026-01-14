@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-// --- COMPONENT IMPORTS ---
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import MyBookings from './pages/MyBookings';
@@ -11,11 +10,7 @@ import Register from './pages/Register';
 import TutorDashboard from './pages/TutorDashboard';
 
 function App() {
-  // =========================================
-  // 1. GLOBAL STATE MANAGEMENT
-  // =========================================
-
-  // FIX 1: Load user from LocalStorage if available (Persist Login)
+  // 1. GLOBAL STATE
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -23,54 +18,37 @@ function App() {
 
   const [tutors, setTutors] = useState([]);
 
-  // =========================================
-  // 2. FETCH DATA FUNCTION
-  // =========================================
-
-  // FIX 2: We make this a reusable function so we can call it after updates
+  // 2. FETCH DATA FUNCTION (Updated URL)
   const fetchTutors = () => {
-    fetch('http://localhost:5000/api/tutors')
+    fetch('https://studybuddy-backend-67h9.onrender.com/api/tutors')
       .then(res => res.json())
       .then(data => {
-        console.log("Data loaded from Backend:", data);
         setTutors(data);
       })
       .catch(err => console.error("Failed to fetch tutors:", err));
   };
 
-  // Run fetch once on app start
   useEffect(() => {
     fetchTutors();
   }, []);
 
-  // =========================================
-  // 3. AUTHENTICATION LOGIC
-  // =========================================
-
+  // 3. AUTH LOGIC
   const handleRegister = (formData) => {
     console.log("Register logic handled in component");
   };
 
   const handleLogin = (loggedInUser) => {
-    // Save to State AND LocalStorage
     setUser(loggedInUser);
     localStorage.setItem('user', JSON.stringify(loggedInUser));
   };
 
   const handleLogout = () => {
-    // Clear State AND LocalStorage
     setUser(null);
     localStorage.removeItem('user');
   };
 
-  // =========================================
-  // 4. BOOKING LOGIC
-  // =========================================
   const addBooking = (newBooking) => console.log("Booking added via API");
 
-  // =========================================
-  // 5. RENDER
-  // =========================================
   return (
     <>
       <Navbar user={user} logout={handleLogout} />
@@ -91,12 +69,11 @@ function App() {
               addBooking={addBooking}
               user={user}
               tutors={tutors}
-              refreshTutors={fetchTutors} // <--- PASS THE REFRESH FUNCTION HERE
+              refreshTutors={fetchTutors}
             />
           }
         />
 
-        {/* FIX 2: Pass 'fetchTutors' so Dashboard can tell App to reload data */}
         <Route path="/tutor-dashboard" element={<TutorDashboard user={user} refreshTutors={fetchTutors} />} />
       </Routes>
     </>

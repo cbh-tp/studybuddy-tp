@@ -6,7 +6,7 @@ function Register() {
         name: "",
         email: "",
         password: "",
-        role: "Student" // Default role
+        role: "Student"
     });
     const [error, setError] = useState("");
     const navigate = useNavigate();
@@ -20,8 +20,8 @@ function Register() {
         setError("");
 
         try {
-            // 1. Send data to Backend
-            const response = await fetch('http://localhost:5000/api/register', {
+            // UPDATED URL
+            const response = await fetch('https://studybuddy-backend-67h9.onrender.com/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -30,11 +30,9 @@ function Register() {
             const data = await response.json();
 
             if (response.ok) {
-                // 2. Success! Redirect to Login page
                 alert("Registration Successful! Please Login.");
                 navigate("/login");
             } else {
-                // 3. Show error (e.g., "Email already exists")
                 setError(data.message || "Registration failed");
             }
         } catch (err) {

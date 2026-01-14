@@ -1,21 +1,15 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
-// Add 'refreshTutors' to the list of props
 function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
 
   const { id } = useParams();
   const navigate = useNavigate();
-
-  // Find the tutor by MongoDB _id
   const tutor = tutors.find((t) => t._id === id);
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // --- NEW: CHECK IF USER IS THE TUTOR ---
-  // We compare the logged-in user's ID (user.userId) 
-  // with the tutor's linked user ID (tutor.userId).
   const isOwnProfile = user && tutor && user.userId === tutor.userId;
 
   if (!tutor) {
@@ -28,7 +22,6 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
   }
 
   const handleBookSession = async () => {
-    // Extra security check
     if (isOwnProfile) return alert("You cannot book yourself!");
 
     if (!user) {
@@ -50,7 +43,8 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
       };
 
       try {
-        const response = await fetch('http://localhost:5000/api/bookings', {
+        // UPDATED URL
+        const response = await fetch('https://studybuddy-backend-67h9.onrender.com/api/bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bookingData)
@@ -58,7 +52,7 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
 
         if (response.ok) {
           setBookingSuccess(true);
-          refreshTutors(); // <--- NEW: Force app to re-fetch data so the slot disappears!
+          refreshTutors();
         } else {
           alert("Booking failed! Server error.");
         }
@@ -73,7 +67,6 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
       <Link to="/" className="btn btn-outline-secondary mb-4">&larr; Back to Search</Link>
 
       <div className="row">
-        {/* Tutor Card Info */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm border-0">
             <div className="card-body text-center">
@@ -81,19 +74,10 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
                 style={{ width: '100px', height: '100px', fontSize: '2.5rem' }}>
                 {tutor.name.charAt(0)}
               </div>
-
               <h3 className="card-title">{tutor.name}</h3>
-
-              <div className="text-warning mb-2">
-                {'★'.repeat(Math.round(tutor.ratingAvg))}
-                <span className="text-muted"> ({tutor.ratingCount} reviews)</span>
-              </div>
-
               <h4 className="text-success fw-bold">${tutor.hourlyRate}/hr</h4>
 
-              {/* Contact Button Logic */}
               {isOwnProfile ? (
-                // If viewing own profile, show "Edit" instead of "Contact"
                 <Link to="/tutor-dashboard" className="btn btn-secondary w-100 mt-2 mb-3">
                   Edit My Profile
                 </Link>
@@ -109,9 +93,7 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
                   Please <Link to="/login">login</Link> to contact or book.
                 </div>
               )}
-
               <hr />
-
               <div className="text-start">
                 <p><strong>Modules:</strong> {tutor.modules.join(", ")}</p>
                 <p><strong>Topics:</strong> {tutor.topics.join(", ")}</p>
@@ -120,7 +102,6 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
           </div>
         </div>
 
-        {/* Booking Section */}
         <div className="col-md-8">
           <div className="card shadow-sm border-0 p-4">
             <h4 className="mb-3">About Me</h4>
@@ -128,9 +109,6 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
 
             <h4 className="mt-4 mb-3">Available Slots</h4>
 
-            {/* --- BOOKING LOGIC STARTS HERE --- */}
-
-            {/* 1. If Booking Success */}
             {bookingSuccess ? (
               <div className="alert alert-success">
                 <h4 className="alert-heading">Booking Confirmed!</h4>
@@ -140,15 +118,11 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
                   <Link to="/" className="btn btn-outline-success">Find Another Tutor</Link>
                 </div>
               </div>
-
-              /* 2. If User is the Tutor (OWN PROFILE) */
             ) : isOwnProfile ? (
               <div className="alert alert-info border-info">
                 <h5>👋 This is your profile.</h5>
                 <p className="mb-0">You cannot book your own sessions. To manage these slots, go to your <Link to="/tutor-dashboard">Dashboard</Link>.</p>
               </div>
-
-              /* 3. Normal Booking View */
             ) : (
               <>
                 {tutor.availability.length > 0 ? (
@@ -174,12 +148,6 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
                 >
                   {selectedSlot ? "Confirm Booking" : "Select a Slot to Book"}
                 </button>
-
-                {!user && (
-                  <p className="text-danger text-center mt-2">
-                    <small>* You must be logged in to confirm a booking.</small>
-                  </p>
-                )}
               </>
             )}
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-import Navbar from './components/Navbar';
+import Navbar from './components/NavBar';
 import Home from './pages/Home';
 import MyBookings from './pages/MyBookings';
 import TutorProfile from './pages/TutorProfile';

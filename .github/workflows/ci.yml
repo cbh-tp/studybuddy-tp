@@ -1,0 +1,31 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Check out the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Set up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    # 3. Install Dependencies (Backend & Frontend mixed)
+    - name: Install Dependencies
+      run: npm install
+
+    # 4. Test the Build (Frontend)
+    # This checks if Vite can actually build your site without crashing
+    - name: Run Build
+      run: npm run build

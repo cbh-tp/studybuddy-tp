@@ -51,7 +51,7 @@ app.post('/api/login', async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            userId: user._id // We need this ID to link bookings!
+            userId: user._id
         });
 
     } catch (err) {
@@ -59,10 +59,9 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// --- 3. CREATE A BOOKING (With Slot Removal Logic) ---
+// 3. CREATE A BOOKING (Removes Slot)
 app.post('/api/bookings', async (req, res) => {
     try {
-        // We expect the frontend to send: { studentId, tutorId, date, time, ... }
         const { studentId, tutorId, tutorName, module, date, time, status } = req.body;
 
         // A. Create the Booking Record
@@ -77,8 +76,7 @@ app.post('/api/bookings', async (req, res) => {
         });
         const savedBooking = await newBooking.save();
 
-        // B. (NEW) Remove the slot from the Tutor's availability
-        // This prevents "Double Booking"
+        // B. Remove the slot from the Tutor's availability
         await Tutor.findByIdAndUpdate(
             tutorId,
             {
@@ -99,7 +97,6 @@ app.post('/api/bookings', async (req, res) => {
 app.get('/api/bookings/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        // Find bookings where studentId matches the logged-in user
         const bookings = await Booking.find({ studentId: userId });
         res.json(bookings);
     } catch (err) {
@@ -107,28 +104,54 @@ app.get('/api/bookings/:userId', async (req, res) => {
     }
 });
 
-// 5. CANCEL BOOKING (Delete)
+// 5. CANCEL BOOKING (Restores Slot & SORTS it)
 app.delete('/api/bookings/:id', async (req, res) => {
     try {
         const { id } = req.params;
+
+        // A. Find the booking
+        const booking = await Booking.findById(id);
+
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+
+        // B. Add the slot BACK and SORT the array immediately
+        await Tutor.findByIdAndUpdate(booking.tutorId, {
+            $push: {
+                availability: {
+                    $each: [{ // We push this one new slot...
+                        id: new mongoose.Types.ObjectId().toString(),
+                        date: booking.date,
+                        time: booking.time,
+                        status: "Available"
+                    }],
+                    $sort: { date: 1, time: 1 } // ...and then auto-sort by Date then Time!
+                }
+            }
+        });
+
+        // C. Delete the booking ticket
         await Booking.findByIdAndDelete(id);
-        res.json({ message: "Booking cancelled" });
+
+        res.json({ message: "Booking cancelled, slot restored and sorted!" });
+
     } catch (err) {
+        console.error("Cancel Error:", err);
         res.status(500).json({ message: "Could not cancel booking" });
     }
 });
 
-// 6. RESCHEDULE BOOKING (Update)
+// 6. RESCHEDULE BOOKING
 app.put('/api/bookings/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { date, time } = req.body; // New date/time from frontend
+        const { date, time } = req.body;
 
-        // Find the booking and update it
         const updatedBooking = await Booking.findByIdAndUpdate(
             id,
             { date, time, status: 'Rescheduled' },
-            { new: true } // Return the updated version
+            { new: true }
         );
 
         res.json(updatedBooking);
@@ -142,13 +165,11 @@ app.post('/api/register', async (req, res) => {
     const { name, email, password, role } = req.body;
 
     try {
-        // 1. Check if user exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        // 2. Create the User Login Account
         const newUser = new User({
             name,
             email,
@@ -156,21 +177,19 @@ app.post('/api/register', async (req, res) => {
             role: role || 'Student'
         });
 
-        await newUser.save(); // Save the login info
+        await newUser.save();
 
-        // 3. If they are a Tutor, Create a Blank Profile!
         if (role === 'Tutor') {
             const newTutorProfile = new Tutor({
-                userId: newUser._id, // Link to the login account
+                userId: newUser._id,
                 name: newUser.name,
                 email: newUser.email,
-                modules: [],       // Empty for now
+                modules: [],
                 topics: [],
                 bio: "New tutor ready to help!",
                 hourlyRate: 0,
                 availability: []
             });
-
             await newTutorProfile.save();
         }
 
@@ -185,22 +204,17 @@ app.post('/api/register', async (req, res) => {
 app.put('/api/tutors/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        const updates = req.body; // e.g. { bio: "...", hourlyRate: 50 }
-
-        // Find the tutor profile linked to this User ID and update it
+        const updates = req.body;
         const updatedTutor = await Tutor.findOneAndUpdate(
             { userId: userId },
             updates,
-            { new: true } // Return the updated version
+            { new: true }
         );
-
         res.json(updatedTutor);
     } catch (err) {
         res.status(500).json({ message: "Failed to update profile" });
     }
 });
-
-// ============================================
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

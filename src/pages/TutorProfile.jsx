@@ -1,16 +1,20 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
-function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
+function TutorProfile({ user, tutors, refreshTutors }) {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  // Find tutor from the props passed down from App.jsx
   const tutor = tutors.find((t) => t._id === id);
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
   const isOwnProfile = user && tutor && user.userId === tutor.userId;
+
+  // UPDATED URL: Live Render Backend
+  const API_URL = 'https://studybuddy-backend-67h9.onrender.com';
 
   if (!tutor) {
     return (
@@ -31,20 +35,23 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
     }
 
     if (selectedSlot) {
+      // Find the specific slot object to get its details
       const slotDetails = tutor.availability.find(s => s.id === selectedSlot);
+      
       const bookingData = {
         studentId: user.userId,
         tutorId: tutor._id,
         tutorName: tutor.name,
-        module: tutor.modules[0],
+        module: tutor.modules[0] || "General",
         date: slotDetails.date,
         time: slotDetails.time,
-        status: "Confirmed"
+        status: "Confirmed",
+        // 🚨 CRITICAL FIX: Send the Unique Slot ID so backend deletes the right one!
+        slotId: slotDetails.id 
       };
 
       try {
-        // UPDATED URL
-        const response = await fetch('https://studybuddy-backend-67h9.onrender.com/api/bookings', {
+        const response = await fetch(`${API_URL}/api/bookings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bookingData)
@@ -52,9 +59,10 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
 
         if (response.ok) {
           setBookingSuccess(true);
-          refreshTutors();
+          refreshTutors(); // Refresh the app data to show the slot is gone
         } else {
-          alert("Booking failed! Server error.");
+          const err = await response.json();
+          alert(`Booking failed: ${err.message}`);
         }
       } catch (error) {
         console.error("Error booking:", error);
@@ -67,6 +75,7 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
       <Link to="/" className="btn btn-outline-secondary mb-4">&larr; Back to Search</Link>
 
       <div className="row">
+        {/* LEFT COLUMN: Avatar & Contact */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm border-0">
             <div className="card-body text-center">
@@ -102,10 +111,11 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
           </div>
         </div>
 
+        {/* RIGHT COLUMN: Bio & Slots */}
         <div className="col-md-8">
           <div className="card shadow-sm border-0 p-4">
             <h4 className="mb-3">About Me</h4>
-            <p className="text-muted">{tutor.bio}</p>
+            <p className="text-muted">{tutor.bio || "No bio provided."}</p>
 
             <h4 className="mt-4 mb-3">Available Slots</h4>
 
@@ -125,7 +135,7 @@ function TutorProfile({ addBooking, user, tutors, refreshTutors }) {
               </div>
             ) : (
               <>
-                {tutor.availability.length > 0 ? (
+                {tutor.availability && tutor.availability.length > 0 ? (
                   <div className="d-flex flex-wrap gap-2 mb-4">
                     {tutor.availability.map((slot) => (
                       <button

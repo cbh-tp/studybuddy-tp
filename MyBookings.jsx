@@ -145,7 +145,7 @@ function MyBookings({ user }) {
       <div className="row">
         {upcoming.length > 0 ? (
           upcoming.map(b => (
-            // ✅ CRITICAL FIX: The 'key' goes here, on the component itself!
+            // ✅ CRITICAL FIX: The 'key' goes here!
             <BookingCard key={b._id} booking={b} showActions={true} />
           ))
         ) : (
@@ -159,7 +159,6 @@ function MyBookings({ user }) {
       <div className="row">
         {past.length > 0 ? (
           past.map(b => (
-            // ✅ CRITICAL FIX: The 'key' goes here too
             <BookingCard key={b._id} booking={b} showActions={false} />
           ))
         ) : (

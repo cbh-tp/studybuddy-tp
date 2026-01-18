@@ -8,10 +8,10 @@ function MyBookings({ user }) {
   // --- MODAL STATE ---
   const [showModal, setShowModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [availableSlots, setAvailableSlots] = useState([]); // List for dropdown
-  const [selectedSlotId, setSelectedSlotId] = useState(""); // The chosen slot ID
+  const [availableSlots, setAvailableSlots] = useState([]); 
+  const [selectedSlotId, setSelectedSlotId] = useState(""); 
 
-  // 🚀 LIVE URL (Make sure this matches your App.jsx)
+  // 🚀 LIVE URL
   const API_URL = 'https://studybuddy-backend-67h9.onrender.com';
 
   useEffect(() => {
@@ -41,11 +41,10 @@ function MyBookings({ user }) {
   // --- MODAL: OPEN & FETCH SLOTS ---
   const openRescheduleModal = async (booking) => {
     setSelectedBooking(booking);
-    setAvailableSlots([]); // Clear old list
-    setSelectedSlotId(""); // Reset selection
+    setAvailableSlots([]); 
+    setSelectedSlotId(""); 
     setShowModal(true);
 
-    // 1. Fetch the Tutor's latest slots for the dropdown
     try {
         const res = await fetch(`${API_URL}/api/tutors/${booking.tutorId}`);
         const tutorData = await res.json();
@@ -70,7 +69,6 @@ function MyBookings({ user }) {
         return;
     }
 
-    // Find the full slot object based on ID to get date/time text
     const targetSlot = availableSlots.find(s => s.id === selectedSlotId);
     if (!targetSlot) return; 
 
@@ -79,8 +77,8 @@ function MyBookings({ user }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-            newSlotId: selectedSlotId, // Send ID for removal
-            newDate: targetSlot.date,  // Send Text for booking ticket
+            newSlotId: selectedSlotId, 
+            newDate: targetSlot.date,  
             newTime: targetSlot.time 
         })
       });
@@ -99,7 +97,6 @@ function MyBookings({ user }) {
   // --- HELPERS ---
   const isUpcoming = (dateStr, timeStr) => {
     let cleanTime = timeStr;
-    // Simple fix for "1400" format legacy data
     if (!timeStr.includes(':') && timeStr.length === 4) {
         cleanTime = timeStr.slice(0, 2) + ":" + timeStr.slice(2);
     }
@@ -110,27 +107,32 @@ function MyBookings({ user }) {
   const upcoming = bookings.filter(b => isUpcoming(b.date, b.time));
   const past = bookings.filter(b => !isUpcoming(b.date, b.time));
 
-  const BookingCard = ({ booking, showActions }) => (
-    <div className="col-md-6 mb-3" key={booking._id}>
-      <div className={`card shadow-sm ${!showActions ? 'bg-light text-muted' : ''}`}>
-        <div className="card-body">
-          <h5 className="card-title">Session with {booking.tutorName}</h5>
-          <h6 className="card-subtitle mb-2">{booking.module}</h6>
-          <p className="card-text">
-            <strong>Date:</strong> {booking.date}<br />
-            <strong>Time:</strong> {booking.time}<br />
-            <strong>Status:</strong> <span className={`badge ${booking.status === 'Confirmed' ? 'bg-success' : 'bg-warning'}`}>{booking.status}</span>
-          </p>
-          {showActions && (
-            <div className="d-flex gap-2">
-                <button className="btn btn-primary btn-sm" onClick={() => openRescheduleModal(booking)}>Reschedule</button>
-                <button className="btn btn-outline-danger btn-sm" onClick={() => handleCancel(booking._id)}>Cancel</button>
-            </div>
-          )}
+  // --- BOOKING CARD COMPONENT ---
+  const BookingCard = ({ booking, showActions }) => {
+    return (
+      <div className="col-md-6 mb-3">
+        <div className={`card shadow-sm ${!showActions ? 'bg-light text-muted' : ''}`}>
+          <div className="card-body">
+            <h5 className="card-title">Session with {booking.tutorName}</h5>
+            <h6 className="card-subtitle mb-2">{booking.module}</h6>
+            <p className="card-text">
+              <strong>Date:</strong> {booking.date}<br />
+              <strong>Time:</strong> {booking.time}<br />
+              <strong>Status:</strong> <span className={`badge ${booking.status === 'Confirmed' ? 'bg-success' : 'bg-warning'}`}>{booking.status}</span>
+            </p>
+            
+            {/* BUTTONS SECTION */}
+            {showActions ? (
+              <div className="d-flex gap-2">
+                  <button className="btn btn-primary btn-sm" onClick={() => openRescheduleModal(booking)}>Reschedule</button>
+                  <button className="btn btn-outline-danger btn-sm" onClick={() => handleCancel(booking._id)}>Cancel</button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (!user) return <div className="p-5">Please Login.</div>;
   if (loading) return <div className="p-5">Loading...</div>;
@@ -140,12 +142,30 @@ function MyBookings({ user }) {
       <h2 className="mb-4">My Bookings</h2>
 
       <h4 className="text-primary mb-3">📅 Upcoming Sessions</h4>
-      <div className="row">{upcoming.length ? upcoming.map(b => <BookingCard booking={b} showActions={true} />) : <p>No upcoming sessions.</p>}</div>
+      <div className="row">
+        {upcoming.length > 0 ? (
+          upcoming.map(b => (
+            // ✅ CRITICAL FIX: The 'key' goes here, on the component itself!
+            <BookingCard key={b._id} booking={b} showActions={true} />
+          ))
+        ) : (
+          <p>No upcoming sessions.</p>
+        )}
+      </div>
 
       <hr className="my-5" />
 
       <h4 className="text-secondary mb-3">📜 Past History</h4>
-      <div className="row">{past.length ? past.map(b => <BookingCard booking={b} showActions={false} />) : <p>No history.</p>}</div>
+      <div className="row">
+        {past.length > 0 ? (
+          past.map(b => (
+            // ✅ CRITICAL FIX: The 'key' goes here too
+            <BookingCard key={b._id} booking={b} showActions={false} />
+          ))
+        ) : (
+          <p>No history.</p>
+        )}
+      </div>
 
       {/* --- DROPDOWN MODAL --- */}
       {showModal && (

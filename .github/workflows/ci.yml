@@ -1,31 +1,52 @@
+# -------------------------------------------------------------------------
+# CI PIPELINE CONFIGURATION
+# -------------------------------------------------------------------------
+# This workflow ensures that every time code is pushed or a PR is made,
+# the project is automatically tested to ensure it installs and builds correctly.
+# This prevents "broken" code from being merged into the main branch.
+# -------------------------------------------------------------------------
+
 name: CI Pipeline
 
+# 1. TRIGGERS (When should this run?)
 on:
+  # Run on every push to the 'main' branch
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+  
+  # Run when a Pull Request targets the 'main' branch
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
+# 2. JOBS (What should the computer do?)
 jobs:
-  build-test:
+  build-and-test:
+    # The operating system the "virtual runner" will use
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Check out the code
-    - name: Checkout code
+    # --- Step A: Get the Code ---
+    # This downloads your repository code onto the virtual runner.
+    - name: Checkout Source Code
       uses: actions/checkout@v3
 
-    # 2. Set up Node.js
-    - name: Set up Node.js
+    # --- Step B: Prepare the Environment ---
+    # Installs Node.js (version 18) so we can run npm commands.
+    # We also enable 'cache' to speed up future runs by remembering node_modules.
+    - name: Set up Node.js Environment
       uses: actions/setup-node@v3
       with:
         node-version: '18'
+        cache: 'npm'
 
-    # 3. Install Dependencies (Backend & Frontend mixed)
+    # --- Step C: Install Libraries ---
+    # Installs all dependencies listed in package.json (React, Express, Mongoose, etc.)
+    # using 'npm ci' (Clean Install) is often safer for CI than 'npm install'.
     - name: Install Dependencies
       run: npm install
 
-    # 4. Test the Build (Frontend)
-    # This checks if Vite can actually build your site without crashing
-    - name: Run Build
+    # --- Step D: Verify Build ---
+    # Runs the Vite build command. If there are syntax errors or missing files,
+    # this step will fail, alerting you that the code is broken.
+    - name: Verify Application Build
       run: npm run build
